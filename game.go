@@ -13,6 +13,7 @@ func New() Game {
 	return Game{
 		state:    statePlayerTurn,
 		dealerAI: dealerAI{},
+		balance:  0,
 	}
 }
 
@@ -29,6 +30,7 @@ type Game struct {
 	player   []deck.Card
 	dealer   []deck.Card
 	dealerAI AI
+	balance  int
 }
 
 func (g *Game) currentHand() *[]deck.Card {
@@ -62,30 +64,29 @@ func MoveStand(g *Game) {
 	g.state++
 }
 
-func (g *Game) Play(ai AI) {
+func (g *Game) Play(ai AI) int {
 	g.deck = deck.New(deck.Deck(3), deck.Shuffle)
 
 	//presumably 10 games
 	for i := 0; i < 10; i++ {
 		deal(g)
 
-		var input string
 		for g.state == statePlayerTurn {
 			hand := make([]deck.Card, len(g.player))
 			copy(hand, g.player)
 			move := ai.Play(g.player, g.dealer[0])
 			move(g)
 		}
-	}
 
-	for g.state == stateDealerTurn {
-		hand := make([]deck.Card, len(g.dealer))
-		copy(hand, g.dealer)
-		move := g.dealerAI.Play(hand, g.dealer[0])
-		move(g)
+		for g.state == stateDealerTurn {
+			hand := make([]deck.Card, len(g.dealer))
+			copy(hand, g.dealer)
+			move := g.dealerAI.Play(hand, g.dealer[0])
+			move(g)
+		}
+		endHand(g, ai)
 	}
-
-	endHand(g, ai)
+	return 0
 }
 
 func deal(g *Game) {
@@ -141,12 +142,16 @@ func endHand(g *Game, ai AI) {
 	switch {
 	case pScore > 21:
 		fmt.Println("You busted, and loose, Looser")
+		g.balance--
 	case dScore > 21:
 		fmt.Println("Dealer busted, and loose, Looser")
+		g.balance++
 	case pScore > dScore:
 		fmt.Println("You win Congrats")
+		g.balance++
 	case dScore > pScore:
 		fmt.Println("You loose...Try Again!")
+		g.balance--
 	case dScore == pScore:
 		fmt.Println("Draw")
 	}
