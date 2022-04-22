@@ -63,3 +63,19 @@ func (ai humanAI) Play(hand []deck.Card, dealer deck.Card) Move {
 func (ai humanAI) Bet() int {
 	return 1
 }
+
+type Move func(*Game)
+
+func MoveHit(g *Game) {
+	hand := g.currentHand()
+	var card deck.Card
+	card, g.deck = draw(g.deck)
+	*hand = append(*hand, card)
+	if Score(*hand...) > 21 {
+		MoveStand(g)
+	}
+}
+
+func MoveStand(g *Game) {
+	g.state++
+}

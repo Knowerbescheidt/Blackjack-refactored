@@ -44,24 +44,8 @@ func (g *Game) currentHand() *[]deck.Card {
 	}
 }
 
-type Move func(*Game)
-
-func MoveHit(g *Game) {
-	hand := g.currentHand()
-	var card deck.Card
-	card, g.deck = draw(g.deck)
-	*hand = append(*hand, card)
-	if Score(*hand...) > 21 {
-		MoveStand(g)
-	}
-}
-
 func draw(cards []deck.Card) (deck.Card, []deck.Card) {
 	return cards[0], cards[1:]
-}
-
-func MoveStand(g *Game) {
-	g.state++
 }
 
 func (g *Game) Play(ai AI) int {
