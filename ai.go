@@ -1,6 +1,5 @@
 package blackjack
 
-//minute 9 ai interfrace
 import (
 	"fmt"
 
@@ -10,12 +9,12 @@ import (
 type AI interface {
 	Results(hand [][]deck.Card, dealer []deck.Card)
 	Play(hand []deck.Card, dealer deck.Card) Move
-	Bet() int
+	Bet(shuffled bool) int
 }
 
 type dealerAI struct{}
 
-func (ai dealerAI) Bet() int {
+func (ai dealerAI) Bet(shuffled bool) int {
 	return 1
 }
 
@@ -60,8 +59,11 @@ func (ai humanAI) Play(hand []deck.Card, dealer deck.Card) Move {
 	}
 }
 
-func (ai humanAI) Bet() int {
-	return 1
+func (ai humanAI) Bet(shuffled bool) int {
+	fmt.Println("What would you like to bet?")
+	var bet int
+	fmt.Scanf("%d\n", &bet)
+	return bet
 }
 
 type Move func(*Game)

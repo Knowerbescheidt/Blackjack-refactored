@@ -6,15 +6,29 @@ import (
 	deck "github.com/Knowerbescheidt/Deck-of-cards"
 )
 
-//minute 31 refactor
+//Starting Betting
 type state int8
 
-func New() Game {
-	return Game{
+func New(opts Options) Game {
+	g := Game{
 		state:    statePlayerTurn,
 		dealerAI: dealerAI{},
 		balance:  0,
 	}
+	if opts.Decks == 0 {
+		opts.Decks = 3
+	}
+	if opts.BlackjackPayout == 0 {
+		opts.BlackjackPayout = 1.5
+	}
+	if opts.Hands == 0 {
+		opts.Hands = 100
+	}
+	g.nDecks = opts.Decks
+	g.nHands = opts.Hands
+	g.blackjackPayout = opts.BlackjackPayout
+
+	return g
 }
 
 const (
@@ -23,14 +37,27 @@ const (
 	stateHandOver
 )
 
+type Options struct {
+	Decks           int
+	Hands           int
+	BlackjackPayout float64
+}
+
 type Game struct {
 	//unexported fields
-	deck     []deck.Card
-	state    state
-	player   []deck.Card
+	nDecks          int
+	nHands          int
+	blackjackPayout float64
+
+	state state
+	deck  []deck.Card
+
+	player    []deck.Card
+	playerBet int
+	balance   int
+
 	dealer   []deck.Card
 	dealerAI AI
-	balance  int
 }
 
 func (g *Game) currentHand() *[]deck.Card {
@@ -48,11 +75,23 @@ func draw(cards []deck.Card) (deck.Card, []deck.Card) {
 	return cards[0], cards[1:]
 }
 
+func bet(g *Game, ai AI, shuffled bool) {
+	bet := ai.Bet(shuffled)
+	g.playerBet = bet
+}
+
 func (g *Game) Play(ai AI) int {
-	g.deck = deck.New(deck.Deck(3), deck.Shuffle)
+	g.deck = nil
+	min := 52 * g.nDecks / 3
 
 	//presumably 10 games
-	for i := 0; i < 10; i++ {
+	for i := 0; i < g.nHands; i++ {
+		shuffled := false
+		if len(g.deck) < min {
+			g.deck = deck.New(deck.Deck(g.nDecks), deck.Shuffle)
+			shuffled = true
+		}
+		bet(g, ai, shuffled)
 		deal(g)
 
 		for g.state == statePlayerTurn {
@@ -123,22 +162,23 @@ func min(a, b int) int {
 
 func endHand(g *Game, ai AI) {
 	pScore, dScore := Score(g.player...), Score(g.dealer...)
+	winnings := g.playerBet
 	switch {
 	case pScore > 21:
 		fmt.Println("You busted, and loose, Looser")
-		g.balance--
+		winnings *= -1
 	case dScore > 21:
 		fmt.Println("Dealer busted, and loose, Looser")
-		g.balance++
 	case pScore > dScore:
 		fmt.Println("You win Congrats")
-		g.balance++
 	case dScore > pScore:
 		fmt.Println("You loose...Try Again!")
-		g.balance--
+		winnings *= -1
 	case dScore == pScore:
 		fmt.Println("Draw")
+		winnings = 0
 	}
+	g.balance += winnings
 	fmt.Println()
 	ai.Results([][]deck.Card{g.player}, g.dealer)
 	g.player = nil
